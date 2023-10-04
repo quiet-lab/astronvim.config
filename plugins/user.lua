@@ -7,6 +7,16 @@ return {
     "subnut/nvim-ghost.nvim",
     lazy = false,
   },
+  {
+    "kmonad/kmonad-vim",
+    lazy = false,
+  },
+  {
+    "folke/tokyonight.nvim",
+    lazy = false,
+    priority = 1000,
+    opts = {},
+  },
   -- {
   --   "ray-x/lsp_signature.nvim",
   --   event = "BufRead",
