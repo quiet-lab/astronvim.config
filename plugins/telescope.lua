@@ -2,7 +2,7 @@ return {
   "nvim-telescope/telescope.nvim",
   opts = {
     defaults = {
-      winblend = 20,
+      winblend = 50,
     },
   },
 }
