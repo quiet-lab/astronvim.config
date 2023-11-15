@@ -102,10 +102,12 @@
   the `by-id` directory, since these names will not change if you replug the
   device.
 
-  We deal with output by creating a 'uinput' device. This requires that the
-  'uinput' kernel module is loaded. The easiest way to ensure this is by calling
-  'sudo modprobe uinput'. We create a uinput device using:
+  We deal with output by creating a `uinput` device. This requires that the
+  `uinput` kernel module is loaded. The easiest way to ensure this is by calling
+  `sudo modprobe uinput`. We create a uinput device using:
+  ~~~lisp
     (uinput-sink "name" "optional post-init command")
+  ~~~
 
 
  ##  Windows
@@ -118,7 +120,6 @@
 ~~~lisp
     (low-level-hook)
 ~~~
-
   Similarly, the output in Windows lacks the fine-grained control. We use the
   SendEvent API to emit key events directly to Windows. Since these are
   'artificial' events we won't end up catching them again by the
@@ -132,38 +133,38 @@
   Windows system settings for key repeat delay and key repeat rate will have no
   effect when KMonad is running.  To set the repeat delay and rate from KMonad,
   pass the optional arguments pair to `send-event-sink`:
+  ~~~lisp
     (send-event-sink [ <delay> <rate> ])
+  ~~~
   where:
-    <delay> : how many ms before a key starts repeating
-    <rate>  : how many ms between each repeat event
+   `<delay>`: how many ms before a key starts repeating
+   `<rate>`: how many ms between each repeat event
   A value of 500 ms delay and 30 ms rate should mimic the default Windows
   settings pretty well:
-~~~lisp
+  ~~~lisp
     (send-event-sink 500 30)
-~~~
+  ~~~
 
 
   ## Mac OS
 
   For Mac questions I suggest filing an issue and tagging @thoelze1, he wrote
   the MacOS API. However, input using:
-~~~lisp
+  ~~~lisp
     (iokit-name "optional product string")
-~~~
+  ~~~
 
   By default this should grab all keyboards, however if a product string is
   provided, KMonad will only capture those devices that match the provided
   product string. If you would like to provide a product string, you can run
-  `make; ./list-keyboards' in c_src/mac to list the product strings of all
+  `make; ./list-keyboards` in c_src/mac to list the product strings of all
   connected keyboards.
 
   You initialize output on MacOS using:
-~~~lisp
+  ~~~lisp
     (kext)
-~~~
-
+  ~~~
 -----
-
 ~~~lisp
 (defcfg
   ;; For Linux
@@ -225,17 +226,15 @@
   see below).
 
   Most keycodes should be obvious. If you are unsure, check
-  './src/KMonad/Keyboard/Keycode.hs'. Every Keycode has a name corresponding to
+  `./src/KMonad/Keyboard/Keycode.hs`. Every Keycode has a name corresponding to
   its Keycode name, but all lower-case and with the 'Key' prefix removed. There
   are also various aliases for Keycodes starting around line 350. If you are
   trying to bind a key and there is not a 4-letter alias, please file an issue,
   or better yet, a pull-request, and it will be added promptly.
 
-  Also, you can consult './keymap/template/' for various input templates to use
+  Also, you can consult `./keymap/template/` for various input templates to use
   directly or to look up keycodes by position. Here we use the input-template
   for 'us_ansi_60.kbd'
-
-
 ~~~lisp
 (defsrc
   grv  1    2    3    4    5    6    7    8    9    0    -    =    bspc
@@ -245,8 +244,6 @@
   lctl lmet lalt           spc            ralt rmet cmp  rctl
 )
 ~~~
-
-
 ##                        Optional : `defalias` statements
 
   KMonad will let you specify some very specific, crazy buttons. These
@@ -263,18 +260,13 @@
   try to only use 3 letter names for aliases. If that is not enough to be clear,
   consider widening all columns to 6 or 7 characters (or be content with a messy
   config).
-
-
 ~~~lisp
 (defalias
   num  (layer-toggle numbers) ;; Bind num to a button that switches to a layer
   kil  C-A-del                ;; Bind kil to a button that Ctrl-Alt-deletes
 )
 ~~~
-
-
 > NOTE: The above code could just as easily have been written as:
-
 ~~~lisp
 (defalias num (layer-toggle numbers))
 (defalias kil C-A-del)
@@ -287,20 +279,20 @@
   layer, followed by N 'statements-that-evaluate-to-a-button', where N is
   exactly how many entries are defined in the `defsrc` statement.
 
-  It is also important to mention that the 'keymap' in KMonad is modelled as a
+  It is also important to mention that the `keymap` in KMonad is modelled as a
   stack of layers (just like in QMK). When an event is registered we look in the
   top-most layer for a handler. If we don't find one we try the next layer, and
   then the next.
 
-  Exactly what 'evaluates-to-a-button' will be expanded on in more detail below.
+  Exactly what `evaluates-to-a-button` will be expanded on in more detail below.
   There are very many different specialist buttons in KMonad that we will touch
   upon. However, for now, these 4 are a good place to begin:
 
   1. Any keycode evaluates to a button that, on press, emits the press of that
      keycode, and on release, emits the release of that keycode. Just a 'normal'
-     button. The exception is '\', which gets used as an escape character. Use
-     '\\' instead. Other characters that need to be escaped to match the literal
-     character are '(', ')', and '_'.
+     button. The exception is `\`, which gets used as an escape character. Use
+     `\\` instead. Other characters that need to be escaped to match the literal
+     character are `(`, `)`, and `_`.
 
   2. An @-prefixed name evaluates to an alias lookup. We named two buttons in
      the `defalias` block above, we could now refer to these buttons using
@@ -308,31 +300,26 @@
      3 characters in this tutorial. Also, note that we are already referencing
      some aliases that have not yet been defined, this is not an issue.
 
-  3. The '_' character evaluates to transparent. I.e. no handler for that
+  3. The `_` character evaluates to transparent. I.e. no handler for that
      key-event in this layer, causing this event to be handed down the layer
      stack to perhaps be handled by the next layer.
 
-  4. The 'XX' character evaluates to blocked. I.e. no action bound to that
+  4. The `XX` character evaluates to blocked. I.e. no action bound to that
      key-event in this layer, but do actually catch event, preventing any
      underlying layer from handling it.
 
   Finally, it is important to note that the *first* `deflayer` statement in a
   KMonad config will be the layer that is active when KMonad starts up.
-
-  -------------------------------------------------------------------------- |#
-
-
-(deflayer qwerty
-  grv  1    2    3    4    5    6    7    8    9    0    -    =    bspc
-  tab  q    w    e    r    t    y    u    i    o    p    [    ]    \
-  caps a    s    d    f    g    h    j    k    l    ;    '    ret
-  lsft z    x    c    v    b    n    m    ,    .    /    rsft
-  lctl @num lalt           spc            ralt rmet @sym @tst
-)
-
-
-#| --------------------------------------------------------------------------
-                     Optional: as many layers as you please
+  ~~~lisp
+  (deflayer qwerty
+    grv  1    2    3    4    5    6    7    8    9    0    -    =    bspc
+    tab  q    w    e    r    t    y    u    i    o    p    [    ]    \
+    caps a    s    d    f    g    h    j    k    l    ;    '    ret
+    lsft z    x    c    v    b    n    m    ,    .    /    rsft
+    lctl @num lalt           spc            ralt rmet @sym @tst
+  )
+  ~~~
+##                   Optional: as many layers as you please
 
   We had already defined `num` as referring to a `(layer-toggle numbers)`. We
   will get into layer-manipulation soon, but first, let's just create a second
@@ -341,21 +328,17 @@
   To easily specify layers it is highly recommended to create an empty
   `deflayer` statement as a comment at the top of your config, so you can simply
   copy-paste this template. There are also various empty layer templates
-  available in the './keymap/template' directory.
-
-  -------------------------------------------------------------------------- |#
-
-(deflayer numbers
-  _    _    _    _    _    _    _    _    _    _    _    _    _    _
-  _    _    _    _    _    XX   /    7    8    9    -    _    _    _
-  _    _    _    _    _    XX   *    4    5    6    +    _    _
-  _    _    \(   \)   .    XX   0    1    2    3    _    _
-  _    _    _              _              _    _    _    _
-)
-
-
-#| --------------------------------------------------------------------------
-                          Optional: modded buttons
+  available in the `./keymap/template` directory.
+  ~~~lisp
+  (deflayer numbers
+    _    _    _    _    _    _    _    _    _    _    _    _    _    _
+    _    _    _    _    _    XX   /    7    8    9    -    _    _    _
+    _    _    _    _    _    XX   *    4    5    6    +    _    _
+    _    _    \(   \)   .    XX   0    1    2    3    _    _
+    _    _    _              _              _    _    _    _
+  )
+  ~~~
+##                        Optional: modded buttons
 
   Let's start by exploring the various special buttons that are supported by
   KMonad by looking at 'modded' buttons, that is to say, buttons that activate
@@ -364,124 +347,131 @@
 
   We have already seen an example of this style of button, our `kil` button is
   one such button. Let's look at it in more detail:
-    C-A-del
+    `C-A-del`
 
   This looks like a simple declarative statement, but it's helpful to realize
   that is simply syntactic sugar around 2 function calls. This statement is
   equivalent to:
+  ~~~lisp
     (around ctl (around alt del))
-
+  ~~~
   This highlights a core design principle in KMonad: we try to provide very
   simple buttons, and then we provide rules and functions for combining them
   into new buttons. Although note: still very much a work in progress.
 
   So, looking at this statement:
+  ~~~lisp
     (around foo bar)
+  ~~~
 
   Here, `around` is a function that takes two buttons and creates a new button.
   This new button will, on a press, first press foo, then press bar, and on a
   release first release bar, and then foo. Once created, this new button can be
   passed to anything in KMonad that expects a button.
 
-  We have already seen other examples of modded buttons, \(, \), *, and +. There
+  We have already seen other examples of modded buttons, `\(`, `\)`, `*`, and `+`. There
   are no Keycodes for these buttons in KMonad, but they are buttons. They simply
   evaluate to `(around lsft x)`. All shifted numbers have their corresponding
-  characters, the same is true for all capitals, and < > : ~ " | { } \_ + and ?.
+  characters, the same is true for all capitals, and `< > : ~ " | { } \_ +` and `?`.
 
-  To wrap up 'modded-buttons', let's look back at C-A-del. We have 8 variants:
-    C- : (around lctl X)
-    A- : (around lalt X)
-    M- : (around lmet X)
-    S- : (around lsft X)
+  To wrap up `modded-buttons`, let's look back at `C-A-del`. We have 8 variants:
+  - `C- : (around lctl X)`
+  - `A- : (around lalt X)`
+  - `M- : (around lmet X)`
+  - `S- : (around lsft X)`
 
-  Then RC-, RA-, RM-, and RS- behave exactly the same, except using the
+  Then `RC-`, `RA-`, `RM-`, and `RS-` behave exactly the same, except using the
   right-modifier.
 
   These can be combined however you please:
+  ~~~lisp
     C-A-M-S-x          ;; Perfectly valid
     C-%                ;; Perfectly valid: same as C-S-5
     C-RC-RA-A-M-S-RS-m ;; Sure, but why would you?
+  ~~~
 
   Also, note that although we provide special syntax for certain modifiers,
   these buttons are in no way 'special' in KMonad. There is no concept of
-  'modifier':
+  `modifier`:
+  ~~~lisp
     (around a (around b c)) ;; Perfectly valid
+  ~~~
 
-  -------------------------------------------------------------------------- |#
+  ~~~lisp
+  (defalias
 
-(defalias
+    ;; Something useful
+    cpy C-c
+    pst C-v
+    cut C-x
 
-  ;; Something useful
-  cpy C-c
-  pst C-v
-  cut C-x
+    ;; Something silly
+    md1 (around a (around b c))    ;; abc
+    md2 (around a (around lsft b)) ;; aB
+    md3 C-A-M-S-l
+    md4 (around % b)               ;; BEWARE: %B, not %b, do you see why?
+  )
+  ~~~
 
-  ;; Something silly
-  md1 (around a (around b c))    ;; abc
-  md2 (around a (around lsft b)) ;; aB
-  md3 C-A-M-S-l
-  md4 (around % b)               ;; BEWARE: %B, not %b, do you see why?
-)
+##                        Optional: sticky keys
 
-#| --------------------------------------------------------------------------
-                          Optional: sticky keys
-
-  KMonad also supports so called "sticky keys".  These are keys that will
+  KMonad also supports so called `sticky keys`.  These are keys that will
   behave as if they were pressed after just tapping them.  This behaviour
   wears off after the next button is pressed, which makes them ideal for
-  things like a quick control or shift.  For example, tapping a sticky and
-  then pressing `abc' will result in `Abc'.
+  things like a quick control or shift. For example, tapping a sticky and
+  then pressing `abc` will result in `Abc`.
 
-  You can create these keys with the `sticky-key' keyword:
-
+  You can create these keys with the `sticky-key` keyword:
+  ~~~lisp
     (defalias
       slc (sticky-key 500 lctl))
-
-  The number after `sticky-key' is the timeout you want, in milliseconds.  If
+  ~~~
+  The number after `sticky-key` is the timeout you want, in milliseconds.  If
   a key is tapped and that time has passed, it won't act like it's pressed
   down when we receive the next keypress.
 
   It is also possible to combine sticky keys.  For example, to
   get a sticky shift+control you can do
-
+  ~~~lisp
     (defalias
       ssc (around
            (sticky-key 500 lsft)
            (sticky-key 500 lctl)))
+  ~~~
 
-  -------------------------------------------------------------------------- |#
+  Let's make both shift keys sticky
+  ~~~lisp
+  (defalias
+    sl (sticky-key 300 lsft)
+    sr (sticky-key 300 rsft))
+  ~~~
+  Now we define the 'tst' button as opening and closing a bunch of layers at
+  the same time. If you understand why this works, you're starting to grok
+  KMonad.
 
-;; Let's make both shift keys sticky
-(defalias
-  sl (sticky-key 300 lsft)
-  sr (sticky-key 300 rsft))
+  Explanation: we define a bunch of testing-layers with buttons to illustrate
+  the various options in KMonad. Each of these layers makes sure to have its
+  buttons not overlap with the buttons from the other layers, and specifies all
+  its other buttons as transparent. When we use the nested `around` statement,
+  whenever we push the button linked to '@tst' (check `qwerty` layer, we bind
+  it to `rctl`), any button we press when holding `rctl` will be pressed in the
+  context of those 4 layers overlayed on the stack. When we release `rctl`, all
+  these layers will be popped again.
+  ~~~lisp
+  (defalias tst (around (layer-toggle macro-test)
+                  (around (layer-toggle layer-test)
+                    (around (layer-toggle around-next-test)
+                      (around (layer-toggle command-test)
+                              (layer-toggle modded-test))))))
 
-
-;; Now we define the 'tst' button as opening and closing a bunch of layers at
-;; the same time. If you understand why this works, you're starting to grok
-;; KMonad.
-;;
-;; Explanation: we define a bunch of testing-layers with buttons to illustrate
-;; the various options in KMonad. Each of these layers makes sure to have its
-;; buttons not overlap with the buttons from the other layers, and specifies all
-;; its other buttons as transparent. When we use the nested `around` statement,
-;; whenever we push the button linked to '@tst' (check `qwerty` layer, we bind
-;; it to `rctl`), any button we press when holding `rctl` will be pressed in the
-;; context of those 4 layers overlayed on the stack. When we release `rctl`, all
-;; these layers will be popped again.
-(defalias tst (around (layer-toggle macro-test)
-                (around (layer-toggle layer-test)
-                  (around (layer-toggle around-next-test)
-                    (around (layer-toggle command-test)
-                            (layer-toggle modded-test))))))
-
-(deflayer modded-test
-  _    _    _    _    _    _    _    _    _    _    _    _    _    _
-  _    _    @md4 _    _    _    _    _    _    _    _    _    _    _
-  _    _    @md1 @md2 @md3 _    _    _    _    _    _    _    _
-  _    _    @cut @cpy @pst _    _    _    _    _    _    _
-  _    _    _              _              _    _    _    _
-)
+  (deflayer modded-test
+    _    _    _    _    _    _    _    _    _    _    _    _    _    _
+    _    _    @md4 _    _    _    _    _    _    _    _    _    _    _
+    _    _    @md1 @md2 @md3 _    _    _    _    _    _    _    _
+    _    _    @cut @cpy @pst _    _    _    _    _    _    _
+    _    _    _              _              _    _    _    _
+  )
+  ~~~
 
 #| --------------------------------------------------------------------------
                               Optional: tap-macros
