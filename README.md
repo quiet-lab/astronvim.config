@@ -699,17 +699,18 @@
   - 100 signifies 100ms pass
 
   So for example:
-  > Tesc Ta:
+  ~~~
+    Tesc Ta:
       tap of 'Esc' (triggering `foo`), tap of 'a' triggering `a`
     Pesc 100 Ta Tb Resc:
       press of 'Esc', 100ms pause, tap of 'a', tap of 'b', release of 'Esc'
-
+  ~~~
   The `tap-next` button takes 2 buttons, one for tapping, one for holding, and
   combines them into a single button. When pressed, if the next event is its own
   release, we tap the 'tapping' button. In all other cases we first press the
   'holding' button then we handle the event. Then when the `tap-next` gets
   released, we release the 'holding' button.
-
+  ~~~
   So, using our mini-language, we set foo to:
     (tap-next x lsft)
   Then:
@@ -717,6 +718,7 @@
     Tesc Ta         -> xa
     Pesc Ta Resc    -> A
     Pesc Ta Tr Resc -> AR
+  ~~~
 
   The `tap-hold` button is very similar to `tap-next` (a theme, trust me). The
   difference lies in how the decision is made whether to tap or hold. A
@@ -727,7 +729,7 @@
   The additional feature of a `tap-hold` is that it pauses event-processing
   until it makes its decision and then rolls back processing when the decision
   has been made.
-
+  ~~~
   So, again with the mini-language, we set foo to:
     (tap-hold 200 x lsft) ;; Like tap-next, but with a 200ms timeout
   Then:
@@ -736,7 +738,7 @@
     Pesc 300 a      -> A (the moment you press a)
     Pesc a 300      -> A (after 200 ms)
     Pesc a 100 Resc -> xa (both happening immediately on Resc)
-
+  ~~~
   The `tap-hold-next` button is a combination of the previous 2. Essentially,
   think of it as a `tap-next` button, but it also switches to held after a
   period of time. This is useful, because if you have a (tap-next ret ctl) for
@@ -750,60 +752,79 @@
   hold button which should be held when the timeout expires. For example, we
   can construct a button which types one x when tapped, multiple x's when held,
   and yet still acts as shift when another button is pressed before the timeout
-  expires. So, using the minilanguage and foo as:
+  expires.
+  ~~~
+  So, using the minilanguage and foo as:
     (tap-hold-next 200 x lsft :timeout-button x)
   Then:
     Tesc           -> Tx
     Pesc 100 a     -> A (the moment you press a)
     Pesc 5000 Resc -> xxxxxxx (some number of auto-repeated x's)
-
+  ~~~
   Note that KMonad does not itself auto-repeat the key. In this last example,
   KMonad emits 200 Px 4800 Rx, and the operating system's auto-repeat feature,
   if any, emits multiple x's because it sees that the x key is held for 4800 ms.
 
   A note about tap action duration:
   For simplicity we reuse the `tap-next` example above, set foo to:
+  ~~~lisp
     (tap-next x lsft)
+  ~~~
   Now, any keystroke performed by baseline human will have some duration, a
-  'Tesc' is actually 'Pesc <some time passed> Resc'.  A true tap 'Tesc' with no
+  `Tesc` is actually `Pesc <some time passed> Resc`.  A true tap `Tesc` with no
   delay between the press and release will sometime experience registration
   problems in programs.  However the tap action performed by KMonad IS this kind
-  of 'true tap', that is:
+  of `true tap`, that is:
+  ~~~
     Tesc (Pesc 100 Resc) -> Px Rx
+  ~~~
   For various reasons we do not want KMonad to have some default duration in the
   tap action it performs.  If you are having issues in programs, you can instead
   use the aforementioned `around` and `pause` function to give the tap action
   some duration.  Set foo to:
+  ~~~lisp
     (tap-next (around x (pause 2000)) lsft)
+  ~~~
   or equivalently:
+  ~~~lisp
     (tap-next (around x P2000) lsft)
+  ~~~
   then we have:
+  ~~~
     Tesc (Pesc 100 Resc) -> Px 2000 Rx
+  ~~~
   2000 ms is just for you to distinctively see the effect, in practice 35 ms
   should be enough for most scenarios (slightly longer than 2 frames in 60 fps).
 
   The `tap-next-release` is like `tap-next`, except it decides whether to tap or
   hold based on the next release of a key that was *not* pressed before us. This
   also performs rollback like `tap-hold`. So, using the minilanguage and foo as:
+  ~~~lisp
     (tap-next-release x lsft)
+  ~~~
   Then:
+  ~~~
     Tesc Ta         -> xa
     Pa Pesc Ra Resc -> ax (because 'a' was already pressed when we started, so
                            foo decides it is tapping)
     Pesc Pa Resc Ra -> xa (because the first release we encounter is of esc)
     Pesc Ta Resc    -> A (because a was pressed *and* released after we started,
                           so foo decides it is holding)
+  ~~~
 
   `tap-next-press` is also a lot like `tap-next`, but decides whether to tap or
   hold based on whether another key is pressed before this one is released.
   Using the minilanguage:
+  ~~~lisp
     (tap-next-press x lsft)
+  ~~~
   Then:
+  ~~~
     Tesc Ta -> xa
     Pa Pesc Ra Resc -> ax (because esc is released before another key is pressed)
     Pesc Pa Resc Ra -> A (because a is pressed before esc is released)
     Pesc Ta Resc    -> A (a is pressed before esc is released here as well)
-
+  ~~~
   These increasingly stranger buttons are, I think, coming from the stubborn
   drive of some of my more eccentric (and I mean that in the most positive way)
   users to make typing with modifiers on the home-row more comfortable.
@@ -817,35 +838,29 @@
   I honestly think that `tap-hold-next-release`, although it seems the most
   complicated, probably is the most comfortable to use. But I've put all of them
   in a testing layer down below, so give them a go and see what is nice.
+  ~~~lisp
+  (defalias
+    xtn (tap-next x lsft)         ;; Shift that does 'x' on tap
+    xth (tap-hold 400 x lsft)     ;; Long delay for easier testing
+    thn (tap-hold-next 400 x lsft)
+    tnr (tap-next-release x lsft)
+    tnp (tap-next-press x lsft)
+    tnh (tap-hold-next-release 2000 x lsft)
 
-  -------------------------------------------------------------------------- |#
+    ;; Used it the colemak layer
+    xcp (tap-hold-next 400 esc ctl)
+  )
 
-
-(defalias
-  xtn (tap-next x lsft)         ;; Shift that does 'x' on tap
-  xth (tap-hold 400 x lsft)     ;; Long delay for easier testing
-  thn (tap-hold-next 400 x lsft)
-  tnr (tap-next-release x lsft)
-  tnp (tap-next-press x lsft)
-  tnh (tap-hold-next-release 2000 x lsft)
-
-  ;; Used it the colemak layer
-  xcp (tap-hold-next 400 esc ctl)
-)
-
-;; Some of the buttons used here are defined in the next section
-(deflayer multi-overlay
-  @mt  _    _    _    _    _    _    _    _    _    _    _    @rem _
-  _    _    _    _    _    _    _    _    _    _    _    _    _    _
-  @thn _    _    _    _    _    _    _    _    _    _    _    _
-  @xtn _    _    _    _    _    _    _    _    _    _    @xth
-  @tnr @tnp _              _              _    _    _    @tnh
-)
-
-
-#| --------------------------------------------------------------------------
-                              Optional: Multi-tap
-
+  ;; Some of the buttons used here are defined in the next section
+  (deflayer multi-overlay
+    @mt  _    _    _    _    _    _    _    _    _    _    _    @rem _
+    _    _    _    _    _    _    _    _    _    _    _    _    _    _
+    @thn _    _    _    _    _    _    _    _    _    _    _    _
+    @xtn _    _    _    _    _    _    _    _    _    _    @xth
+    @tnr @tnp _              _              _    _    _    @tnh
+  )
+  ~~~
+##                            Optional: Multi-tap
   Besides the tap-hold style buttons there is another multi-use button (with.
   only 1 variant, at the moment). The `multi-tap`.
 
@@ -859,16 +874,11 @@
 
   Note that you can actually hold the button, so in the below example, going:
   tap-tap-hold (wait 300ms) will get you a pressed c, until you release again.
-
-  -------------------------------------------------------------------------- |#
-
-(defalias
-  mt  (multi-tap 300 a 300 b 300 c 300 d e))
-
-
-#| --------------------------------------------------------------------------
-                              Optional: Around-next
-
+  ~~~lisp
+  (defalias
+    mt  (multi-tap 300 a 300 b 300 c 300 d e))
+  ~~~
+##                            Optional: Around-next
   The `around-next` function creates a button that primes KMonad to perform the
   next button-press inside some context. This could be the context of 'having
   Shift pressed' or 'being inside some layer' or, less usefully, 'having d
@@ -882,51 +892,47 @@
 
   I think expansion of this button-style is probably the future of leader-key,
   hydra-style functionality support in KMonad.
-
-  -------------------------------------------------------------------------- |#
-
-(defalias
-  ns  (around-next sft)  ;; Shift the next press
-  nnm (around-next @num) ;; Perform next press in numbers layer
-  ntm (around-next-timeout 500 sft XX)
+  ~~~lisp
+  (defalias
+    ns  (around-next sft)  ;; Shift the next press
+    nnm (around-next @num) ;; Perform next press in numbers layer
+    ntm (around-next-timeout 500 sft XX)
 
 
-)
+  )
 
-(deflayer around-next-test
-  _    _    _    _    _    _    _    _    _    _    _    _    _    _
-  _    _    _    _    _    _    _    _    _    _    _    _    _    _
-  @ns  _    _    _    _    _    _    _    _    _    _    _    _
-  @nnm _    _    _    _    _    _    _    _    _    _    _
-  @ntm _    _              _              _    _    _    _
-)
-
-#| --------------------------------------------------------------------------
-                        Optional: Compose-key sequences
-
+  (deflayer around-next-test
+    _    _    _    _    _    _    _    _    _    _    _    _    _    _
+    _    _    _    _    _    _    _    _    _    _    _    _    _    _
+    @ns  _    _    _    _    _    _    _    _    _    _    _    _
+    @nnm _    _    _    _    _    _    _    _    _    _    _
+    @ntm _    _              _              _    _    _    _
+  )
+  ~~~
+##                      Optional: Compose-key sequences
   Compose-key sequences are series of button-presses that your operating system
   will interpret as the insertion of a special character, like accented
   characters, or various special-languages. In that sense, they are just
   syntactic sugar for keyboard macros.
 
   To get this to work on Linux you will need to set your compose-key with a tool
-  like `setxkbmap', as well as tell KMonad that information. See the `defcfg'
+  like `setxkbmap`, as well as tell KMonad that information. See the `defcfg`
   block at the top of this file for a working example. Note that you need to
   wait ever so slightly for the keyboard to register with linux before the
   command gets executed, that's why the `sleep 1`. Also, note that all the
-  `/run/current-system' stuff is because the author uses NixOS. Just find a
+  `/run/current-system` stuff is because the author uses NixOS. Just find a
   shell-command that will:
 
-    1. Sleep a moment
-    2. Set the compose-key to your desired key
+  1. Sleep a moment
+  2. Set the compose-key to your desired key
 
-  Please be aware that what `setxkbmap' calls the `menu' key is not actually the
-  `menu' key! If you want to use the often suggested
-
-      setxkbmap -option compose:menu
-
-  you will have to set your compose key within KMonad to `compose' and not
-  `menu'.
+  Please be aware that what `setxkbmap` calls the `menu` key is not actually the
+  `menu` key! If you want to use the often suggested
+  ~~~
+  setxkbmap -option compose:menu
+  ~~~
+  you will have to set your compose key within KMonad to `compose` and not
+  `menu`.
 
   After this, this should work out of the box under Linux. Windows does not
   recognize the same compose-key sequences, but WinCompose will make most of the
@@ -938,25 +944,20 @@
   the last one, and enter the sequence for 'add an umlaut' and let the user then
   press some letter to add this umlaut to. These are created using the `+"`
   syntax.
+  ~~~lisp
+  (defalias
+    sym (layer-toggle symbols)
 
-  -------------------------------------------------------------------------- |#
+  )
 
-(defalias
-  sym (layer-toggle symbols)
-
-)
-
-(deflayer symbols
-  _    _    _    _    _    _    _    _    _    _    _    _    _    _
-  _    ä    é    ©    _    _    _    _    _    _    _    _    _    _
-  _    +'   +~   +`   +^   _    _    _    _    _    _    _    _
-  _    +"   +,   _    _    _    _    _    _    _    _    _
-  _    _    _              _              _    _    _    _)
-
-
-#| --------------------------------------------------------------------------
-                        Optional: Command buttons
-
+  (deflayer symbols
+    _    _    _    _    _    _    _    _    _    _    _    _    _    _
+    _    ä    é    ©    _    _    _    _    _    _    _    _    _    _
+    _    +'   +~   +`   +^   _    _    _    _    _    _    _    _
+    _    +"   +,   _    _    _    _    _    _    _    _    _
+    _    _    _              _              _    _    _    _)
+  ~~~
+##                      Optional: Command buttons
   Currently we also provide the ability to launch arbitrary shell-commands from
   inside KMonad. These commands are simply handed off to the command-shell
   without any further checking or waiting.
@@ -970,24 +971,23 @@
 
   BEWARE: never run anyone's configuration without looking at it. You wouldn't
   want to push:
-
+  ~~~lisp
     (cmd-button "rm -rf ~/*") ;; Delete all this user's data
+  ~~~
+  ~~~lisp
+  (defalias
+    dat (cmd-button "date >> /tmp/kmonad_example.txt")   ;; Append date to tmpfile
+    pth (cmd-button "echo $PATH > /tmp/kmonad_path.txt") ;; Write out PATH
+    ;; `dat' on press and `pth' on release
+    bth (cmd-button "date >> /tmp/kmonad_example.txt"
+                    "echo $PATH > /tmp/kmonad_path.txt")
+  )
 
-
-  -------------------------------------------------------------------------- |#
-
-(defalias
-  dat (cmd-button "date >> /tmp/kmonad_example.txt")   ;; Append date to tmpfile
-  pth (cmd-button "echo $PATH > /tmp/kmonad_path.txt") ;; Write out PATH
-  ;; `dat' on press and `pth' on release
-  bth (cmd-button "date >> /tmp/kmonad_example.txt"
-                  "echo $PATH > /tmp/kmonad_path.txt")
-)
-
-(deflayer command-test
-  _    _    _    _    _    _    _    _    _    _    _    _    _    _
-  _    _    _    _    _    _    _    _    _    _    _    _    _    _
-  _    _    _    _    _    _    _    _    _    _    _    _    _
-  _    _    _    _    _    _    _    _    _    @dat @pth _
-  _    _    _              _              _    _    _    _
-)
+  (deflayer command-test
+    _    _    _    _    _    _    _    _    _    _    _    _    _    _
+    _    _    _    _    _    _    _    _    _    _    _    _    _    _
+    _    _    _    _    _    _    _    _    _    _    _    _    _
+    _    _    _    _    _    _    _    _    _    @dat @pth _
+    _    _    _              _              _    _    _    _
+  )
+  ~~~
