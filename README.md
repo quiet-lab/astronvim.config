@@ -12,13 +12,13 @@
 ##                     Basic syntax: comments and parentheses
 
   KMonad's configuration language is styled on various lisps, like scheme or
-  Common Lisp. In a lisp, every statement is entered between `'('` and `')'`s. If
+  Common Lisp. In a lisp, every statement is entered between `(` and `)`s. If
   you are more used to Fortran style languages (python, ruby, C, Java, etc.), the
   change is quite straightforward: the function name moves into the parentheses,
   and you don't use commas to separate arguments. I.e.
 
-  > This:     `my_function(a, 3, "Alakazam")`
-  > Becomes:  `(my_function a 3 "Alakazam")`
+  - This:     `my_function(a, 3, "Alakazam")`
+  - Becomes:  `(my_function a 3 "Alakazam")`
 
   The reason for this is because Lisp-style languages are very easy to parse and
   write syntax-highlighters for.
@@ -27,14 +27,14 @@
   - block comments between: `#|` and its reverse
   - line comments following: `;;`
 
-  Unlike standard lisp, a single ~;~ does not denote a comment, but instead the
+  Unlike standard lisp, a single `;` does not denote a comment, but instead the
   keycode for semicolon.
 
   Also, as you might have noticed, whitespace is possible anywhere.
 
   To check for syntax errors while editing, invoke KMonad with the -d option.
 
-#                         Necessary: the `defcfg` block
+##                        Necessary: the `defcfg` block
 
   There are a few bits of information that are required to be present in a
   KMonad configuration file. One of these is the existence of exactly 1 `defcfg`
@@ -60,25 +60,28 @@
     log to `stdout` without ever running (log-level info). Don't ever enable
     this on a configuration that you do not trust, because:
 
+    ~~~lisp
       (cmd-button "rm -rf ~/*")
+    ~~~
+
 
     is a thing. For more information on the `cmd-button' function, see the
     section on Command buttons below.
 
   There are also some optional OS specific settings that we support:
 
-  - `cmp-seq': KEY, defaults to `RightAlt' (Linux X11 specific)
+  - `cmp-seq`: `KEY`, defaults to `RightAlt` (Linux X11 specific)
 
     This sets your compose key for Unicode input. For more information, as well
     as a workaround to also make this work on windows, see the section on
     Compose-key sequences below.
 
-  - `cmp-seq-delay': NUMBER (in milliseconds)
+  - `cmp-seq-delay`: `NUMBER` (in milliseconds)
 
     This sets a delay between each pressed key in a compose-key sequence.  Some
     environments may have troubles recognizing the key sequence if it's pressed
     too rapidly; if you experience any problems in this direction, you can try
-    setting this value to `5' or `10' and see if that helps.
+    setting this value to `5` or `10` and see if that helps.
 
   Secondly, let's go over how to specify the `input` and `output` fields of a
   `defcfg` block. This differs between OS'es, and so do the capabilities of
@@ -91,12 +94,12 @@
   device-file. This allows us to hook KMonad on the input of exactly 1 keyboard,
   and allows you to run multiple instances of KMonad for different keyboards. We
   make an input using:
-~~~lisp
+  ~~~lisp
     (device-file "/dev/input/by-id/my-keyboard-kbd")
-~~~
+  ~~~
 
-  NOTE: Any valid path to a device-file will work, but it is recommended to use
-  the 'by-id' directory, since these names will not change if you replug the
+  > NOTE: Any valid path to a device-file will work, but it is recommended to use
+  the `by-id` directory, since these names will not change if you replug the
   device.
 
   We deal with output by creating a 'uinput' device. This requires that the
