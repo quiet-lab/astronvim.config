@@ -9,25 +9,25 @@
   `defcfg` block (see below) you should be able to try out all the examples
   interactively.
 
-#                     Basic syntax: comments and parentheses
+##                     Basic syntax: comments and parentheses
 
   KMonad's configuration language is styled on various lisps, like scheme or
-  Common Lisp. In a lisp, every statement is entered between '(' and ')'s. If
+  Common Lisp. In a lisp, every statement is entered between `'('` and `')'`s. If
   you are more used to Fortran style languages (python, ruby, C, Java, etc.), the
   change is quite straightforward: the function name moves into the parentheses,
   and you don't use commas to separate arguments. I.e.
 
-  This:     my_function(a, 3, "Alakazam")
-  Becomes:  (my_function a 3 "Alakazam")
+  > This:     `my_function(a, 3, "Alakazam")`
+  > Becomes:  `(my_function a 3 "Alakazam")`
 
   The reason for this is because Lisp-style languages are very easy to parse and
   write syntax-highlighters for.
 
   We also provide standard Lisp syntax for comments:
-  - block comments between: #| and its reverse
-  - line comments following: ;;
+  - block comments between: `#|` and its reverse
+  - line comments following: `;;`
 
-  Unlike standard lisp, a single ; does not denote a comment, but instead the
+  Unlike standard lisp, a single ~;~ does not denote a comment, but instead the
   keycode for semicolon.
 
   Also, as you might have noticed, whitespace is possible anywhere.
