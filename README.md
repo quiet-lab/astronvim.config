@@ -1,6 +1,4 @@
-#| --------------------------------------------------------------------------
-
-                              KMonad: Guided tour
+#                              KMonad: Guided tour
 
   Welcome to the KMonad configuration tutorial. This document aims to explain:
   1. The configuration syntax
@@ -11,12 +9,7 @@
   `defcfg` block (see below) you should be able to try out all the examples
   interactively.
 
-  -------------------------------------------------------------------------- |#
-
-
-#| --------------------------------------------------------------------------
-
-                     Basic syntax: comments and parentheses
+#                     Basic syntax: comments and parentheses
 
   KMonad's configuration language is styled on various lisps, like scheme or
   Common Lisp. In a lisp, every statement is entered between '(' and ')'s. If
@@ -41,11 +34,7 @@
 
   To check for syntax errors while editing, invoke KMonad with the -d option.
 
-  -------------------------------------------------------------------------- |#
-
-
-#| --------------------------------------------------------------------------
-                         Necessary: the `defcfg` block
+#                         Necessary: the `defcfg` block
 
   There are a few bits of information that are required to be present in a
   KMonad configuration file. One of these is the existence of exactly 1 `defcfg`
@@ -96,13 +85,15 @@
   these interfaces.
 
 
-  -- Linux ------
+  ## Linux
 
   In Linux we deal with input by performing an ioctl-grab on a specific
   device-file. This allows us to hook KMonad on the input of exactly 1 keyboard,
   and allows you to run multiple instances of KMonad for different keyboards. We
   make an input using:
+~~~lisp
     (device-file "/dev/input/by-id/my-keyboard-kbd")
+~~~
 
   NOTE: Any valid path to a device-file will work, but it is recommended to use
   the 'by-id' directory, since these names will not change if you replug the
@@ -114,21 +105,25 @@
     (uinput-sink "name" "optional post-init command")
 
 
-  -- Windows ----
+ ##  Windows
 
   In Windows we do not get such fine-grained control. We use a low-level
   keyboard hook to intercept all non-injected keyboard events. There is
   currently an open issue to improve the C-bindings used to capture windows
   keyevents, and if you have a better way to approach this issue, help is deeply
   appreciated. You specify a windows input using:
+~~~lisp
     (low-level-hook)
+~~~
 
   Similarly, the output in Windows lacks the fine-grained control. We use the
   SendEvent API to emit key events directly to Windows. Since these are
   'artificial' events we won't end up catching them again by the
   `low-level-hook`. It is very likely that KMonad does not play well with other
   programs that capture keyboard input like AHK. You specify windows output using:
+~~~lisp
     (send-event-sink)
+~~~
 
   Specific to Windows, KMonad also handles key auto-repeat.  Therefore your
   Windows system settings for key repeat delay and key repeat rate will have no
@@ -140,14 +135,18 @@
     <rate>  : how many ms between each repeat event
   A value of 500 ms delay and 30 ms rate should mimic the default Windows
   settings pretty well:
+~~~lisp
     (send-event-sink 500 30)
+~~~
 
 
-  -- Mac OS -----
+  ## Mac OS
 
   For Mac questions I suggest filing an issue and tagging @thoelze1, he wrote
   the MacOS API. However, input using:
+~~~lisp
     (iokit-name "optional product string")
+~~~
 
   By default this should grab all keyboards, however if a product string is
   provided, KMonad will only capture those devices that match the provided
@@ -156,10 +155,13 @@
   connected keyboards.
 
   You initialize output on MacOS using:
+~~~lisp
     (kext)
+~~~
 
-  -------------------------------------------------------------------------- |#
+-----
 
+~~~lisp
 (defcfg
   ;; For Linux
   input  (device-file "/dev/input/by-id/usb-04d9_daskeyboard-event-kbd")
@@ -184,10 +186,10 @@
   ;; Set this to false to disable any command-execution in KMonad
   allow-cmd true
 )
+~~~
 
 
-#| --------------------------------------------------------------------------
-                         Necessary: the `defsrc` block
+##                    Necessary: the `defsrc` block
 
   It is difficult to explain the `defsrc` block without immediately going into
   `deflayer` blocks as well. Essentially, KMonad maps input-events to various
@@ -230,8 +232,8 @@
   directly or to look up keycodes by position. Here we use the input-template
   for 'us_ansi_60.kbd'
 
-  -------------------------------------------------------------------------- |#
 
+~~~lisp
 (defsrc
   grv  1    2    3    4    5    6    7    8    9    0    -    =    bspc
   tab  q    w    e    r    t    y    u    i    o    p    [    ]    \
@@ -239,10 +241,10 @@
   lsft z    x    c    v    b    n    m    ,    .    /    rsft
   lctl lmet lalt           spc            ralt rmet cmp  rctl
 )
+~~~
 
 
-#| --------------------------------------------------------------------------
-                        Optional : `defalias` statements
+##                        Optional : `defalias` statements
 
   KMonad will let you specify some very specific, crazy buttons. These
   definitions can get pretty long, though, and would make `deflayer` blocks
@@ -259,22 +261,22 @@
   consider widening all columns to 6 or 7 characters (or be content with a messy
   config).
 
-  -------------------------------------------------------------------------- |#
 
+~~~lisp
 (defalias
   num  (layer-toggle numbers) ;; Bind num to a button that switches to a layer
   kil  C-A-del                ;; Bind kil to a button that Ctrl-Alt-deletes
 )
+~~~
 
 
-#| NOTE: The above code could just as easily have been written as:
+> NOTE: The above code could just as easily have been written as:
+
+~~~lisp
 (defalias num (layer-toggle numbers))
 (defalias kil C-A-del)
-|#
-
-
-#| --------------------------------------------------------------------------
-                     Necessary: at least 1 `deflayer` block
+~~~
+##                     Necessary: at least 1 `deflayer` block
 
   As explained in the `defsrc` section, a `deflayer` will define a button for
   each corresponding entry in the `defsrc` definition. A `deflayer` statement
