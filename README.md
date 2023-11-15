@@ -472,10 +472,7 @@
     _    _    _              _              _    _    _    _
   )
   ~~~
-
-#| --------------------------------------------------------------------------
-                              Optional: tap-macros
-
+##                            Optional: tap-macros
   Let's look at a button we haven't seen yet, tap-macros.
 
   `tap-macro` is a function that takes an arbitrary number of buttons and
@@ -486,37 +483,40 @@
   There are two ways to define a `tap-macro`, using the `tap-macro` function
   directly, or through the #() syntactic sugar. Both evaluate to exactly the
   same button.
-
+  ~~~lisp
     (tap-macro K M o n a d)
     #(K M o n a d)
+  ~~~
 
   If you are going to use a `tap-macro` to perform a sequence of actions inside
   some program you probably want to include short pauses between inputs to give
   the program time to register all the key-presses. Therefore we also provide
   the 'pause' function, which simply pauses processing for a certain amount of
   milliseconds. Pauses can be created like this:
-
+  ~~~lisp
     (pause 20)
     P20
+  ~~~
 
   You can also pause between each key stroke by specifying the `:delay' keyword,
   as well as a time in ms, at the end of a `tap-macro':
-
+  ~~~lisp
     (tap-macro K M o n a d :delay 5)
     #(K M o n a d :delay 5)
-
+  ~~~
   The above would be equivalent to
-
+  ~~~lisp
     (tap-macro K P5 M P5 o P5 n P5 a P5 d)
-
+  ~~~
   The `tap-macro-release` is like `tap-macro`, except that it
   waits to press the last button when the `tap-macro-release`
   gets released.  It might be useful when combined with a
   footswitch that sends keyboard scan codes.
-
+  ~~~lisp
     (tap-macro-release i K M o n a d esc)
+  ~~~
 
-  WARNING: DO NOT STORE YOUR PASSWORDS IN PLAIN TEXT OR IN YOUR KEYBOARD
+  > WARNING: DO NOT STORE YOUR PASSWORDS IN PLAIN TEXT OR IN YOUR KEYBOARD
 
   I know it might be tempting to store your password as a macro, but there are 2
   huge risks:
@@ -528,29 +528,27 @@
   command buttons section below.
 
   This concludes this public service announcement.
+  ~~~lisp
+  (defalias
+    mc1 #(K M o n a d)
+    mc2 #(C-c P50 A-tab P50 C-v) ;; Careful, this might do something
+    mc3 #(P200 h P150 4 P100 > < P50 > < P20 0 r z 1 ! 1 ! !)
+    mc4 (tap-macro a (pause 50) @md2 (pause 50) c)
+    mc5 (tap-macro-release esc esc esc)
+    mc6 #(@mc3 spc @mc3 spc @mc3)
+  )
 
-  -------------------------------------------------------------------------- |#
-
-(defalias
-  mc1 #(K M o n a d)
-  mc2 #(C-c P50 A-tab P50 C-v) ;; Careful, this might do something
-  mc3 #(P200 h P150 4 P100 > < P50 > < P20 0 r z 1 ! 1 ! !)
-  mc4 (tap-macro a (pause 50) @md2 (pause 50) c)
-  mc5 (tap-macro-release esc esc esc)
-  mc6 #(@mc3 spc @mc3 spc @mc3)
-)
-
-(deflayer macro-test
-  _    @mc1 @mc2 @mc3 @mc4 @mc5 @mc6 _    _    _    _    _    _    _
-  _    _    _    _    _    _    _    _    _    _    _    _    _    _
-  _    _    _    _    _    _    _    _    _    _    _    _    _
-  _    _    _    _    _    _    _    _    _    _    _    _
-  _    _    _              _              _    _    _    _
-)
+  (deflayer macro-test
+    _    @mc1 @mc2 @mc3 @mc4 @mc5 @mc6 _    _    _    _    _    _    _
+    _    _    _    _    _    _    _    _    _    _    _    _    _    _
+    _    _    _    _    _    _    _    _    _    _    _    _    _
+    _    _    _    _    _    _    _    _    _    _    _    _
+    _    _    _              _              _    _    _    _
+  )
+  ~~~
 
 
-#| --------------------------------------------------------------------------
-                          Optional: layer manipulation
+##                      Optional: layer manipulation
 
   You have already seen the basics of layer-manipulation. The `layer-toggle`
   button. This button adds a layer to the top of KMonad's layer stack when
@@ -578,25 +576,30 @@
   'leader-key' style behavior. Although I think in the future better solutions
   will be available. For now this will temporarily add a layer to the top of the
   stack:
+  ~~~lisp
     (layer-delay 500 my-layer)
-
+  ~~~
   `layer-next`, once pressed, primes KMonad to handle the next press from some
   arbitrary layer. This aims to fill the same usecase as `layer-delay`: the
   beginnings of 'leader-key' style behavior. I think this whole button will get
   deleted soon, because the more general `around-next` now exists (see below)
   and this is nothing more than:
+  ~~~lisp
     (around-next (layer-toggle layer-name))
+  ~~~
   Until then though, use `layer-next` like this:
+  ~~~lisp
     (layer-next layer-name)
-
+  ~~~
   `layer-switch`: change the base-layer of KMonad. As described at the top of
   this document, the first `deflayer` statement is the layer that is active when
   KMonad starts. Since `layer-toggle` can only ever add on and remove from the
   top of that, it can never change the base-layer. The following button will
   unregister the bottom-most layer of the keymap, and replace it with another
   layer:
+  ~~~lisp
     (layer-switch my-layer)
-
+  ~~~
   This is where things start getting potentially dangerous (i.e. get KMonad into
   an unusuable state until a restart has occured). It is perfectly possible to
   switch into a layer that you can never get out of. Or worse, you could
@@ -624,63 +627,59 @@
   These two operations together, however, are very useful for activating a
   permanent overlay for a while. This technique is illustrated in the tap-hold
   overlay a bit further down.
+  ~~~lisp
+  (defalias
 
+    yah (layer-toggle asking-for-trouble) ;; Completely safe
+    nah (layer-add asking-for-trouble)    ;; Completely unsafe
 
-  -------------------------------------------------------------------------- |#
+    ld1 (layer-delay 500 numbers) ;; One way to get a leader-key
+    ld2 (layer-next numbers)      ;; Another way to get a leader key
 
-(defalias
+    ;; NOTE, this is safe because both `qwerty` and `colemak` contain the `@tst`
+    ;; button which will get us to the `layer-test` layer, which itself contains
+    ;; both `@qwe` and `@col`.
+    qwe (layer-switch qwerty) ;; Set qwerty as the base layer
+    col (layer-switch colemak) ;; Set colemak as the base layer
+  )
+  (deflayer layer-test
+    @qwe _    _    _    _    _    _    _    _    _    _    @add _    @nah
+    @col _    _    _    _    _    _    _    _    _    _    _    _    @yah
+    _    _    _    _    _    _    _    _    _    _    _    _    _
+    _    _    _    _    _    _    _    _    _    @ld1 @ld2 _
+    _    _    _              _              _    _    _    _
+  )
 
-  yah (layer-toggle asking-for-trouble) ;; Completely safe
-  nah (layer-add asking-for-trouble)    ;; Completely unsafe
+  ;; Exactly like qwerty, but with the letters switched around
+  (deflayer colemak
+    grv  1    2    3    4    5    6    7    8    9    0    -    =    bspc
+    tab  q    w    f    p    g    j    l    u    y    ;    [    ]    \
+    @xcp a    r    s    t    d    h    n    e    i    o    '    ret
+    @sl  z    x    c    v    b    k    m    ,    .    /    @sr
+    lctl @num lalt           spc            ralt rmet @sym @tst
+  )
 
-  ld1 (layer-delay 500 numbers) ;; One way to get a leader-key
-  ld2 (layer-next numbers)      ;; Another way to get a leader key
+  (defalias lol #(: - D))
 
-  ;; NOTE, this is safe because both `qwerty` and `colemak` contain the `@tst`
-  ;; button which will get us to the `layer-test` layer, which itself contains
-  ;; both `@qwe` and `@col`.
-  qwe (layer-switch qwerty) ;; Set qwerty as the base layer
-  col (layer-switch colemak) ;; Set colemak as the base layer
-)
-(deflayer layer-test
-  @qwe _    _    _    _    _    _    _    _    _    _    @add _    @nah
-  @col _    _    _    _    _    _    _    _    _    _    _    _    @yah
-  _    _    _    _    _    _    _    _    _    _    _    _    _
-  _    _    _    _    _    _    _    _    _    @ld1 @ld2 _
-  _    _    _              _              _    _    _    _
-)
+  ;; Contrived example
+  (deflayer asking-for-trouble
+    @lol @lol @lol @lol @lol @lol @lol @lol @lol @lol @lol @lol @lol @lol
+    @lol @lol @lol @lol @lol @lol @lol @lol @lol @lol @lol @lol @lol @lol
+    @lol @lol @lol @lol @lol @lol @lol @lol @lol @lol @lol @lol @lol
+    @lol @lol @lol @lol @lol @lol @lol @lol @lol @lol @lol @lol
+    @lol @lol @lol           @lol           @lol @lol @lol @lol
+  )
 
-;; Exactly like qwerty, but with the letters switched around
-(deflayer colemak
-  grv  1    2    3    4    5    6    7    8    9    0    -    =    bspc
-  tab  q    w    f    p    g    j    l    u    y    ;    [    ]    \
-  @xcp a    r    s    t    d    h    n    e    i    o    '    ret
-  @sl  z    x    c    v    b    k    m    ,    .    /    @sr
-  lctl @num lalt           spc            ralt rmet @sym @tst
-)
-
-(defalias lol #(: - D))
-
-;; Contrived example
-(deflayer asking-for-trouble
-  @lol @lol @lol @lol @lol @lol @lol @lol @lol @lol @lol @lol @lol @lol
-  @lol @lol @lol @lol @lol @lol @lol @lol @lol @lol @lol @lol @lol @lol
-  @lol @lol @lol @lol @lol @lol @lol @lol @lol @lol @lol @lol @lol
-  @lol @lol @lol @lol @lol @lol @lol @lol @lol @lol @lol @lol
-  @lol @lol @lol           @lol           @lol @lol @lol @lol
-)
-
-;; One way to safely use layer-add and layer-rem: the button bound to layer-add
-;; is the same button bound to layer-rem in the layer that `add` adds to the
-;; stack. I.e., it becomes impossible to add or remove multiple copies of a
-;; layer.
-(defalias
-  add (layer-add multi-overlay) ;; multi-overlay is defined in the next
-  rem (layer-rem multi-overlay) ;; section below this
-)
-
-#| --------------------------------------------------------------------------
-                          Optional: Multi-use buttons
+  ;; One way to safely use layer-add and layer-rem: the button bound to layer-add
+  ;; is the same button bound to layer-rem in the layer that `add` adds to the
+  ;; stack. I.e., it becomes impossible to add or remove multiple copies of a
+  ;; layer.
+  (defalias
+    add (layer-add multi-overlay) ;; multi-overlay is defined in the next
+    rem (layer-rem multi-overlay) ;; section below this
+  )
+  ~~~
+##                        Optional: Multi-use buttons
 
   Perhaps one of the most useful features of KMonad, where a lot of work has
   gone into, but also an area with many buttons that are ever so slightly
@@ -691,16 +690,16 @@
   so consider the following scenario and mini-language that will be the same
   between scenarios:
 
-    - We have some button `foo` that will be different between scenarios
-    - `foo` is bound to 'Esc' on the input keyboard
-    - the letters a s d f are bound to themselves
-    - Px signifies the press of button x on the keyboard
-    - Rx signifies the release of said button
-    - Tx signifies the sequential and near instantaneous press and release of x
-    - 100 signifies 100ms pass
+  - We have some button `foo` that will be different between scenarios
+  - `foo` is bound to `Esc` on the input keyboard
+  - the letters a s d f are bound to themselves
+  - Px signifies the press of button x on the keyboard
+  - Rx signifies the release of said button
+  - Tx signifies the sequential and near instantaneous press and release of x
+  - 100 signifies 100ms pass
 
   So for example:
-    Tesc Ta:
+  > Tesc Ta:
       tap of 'Esc' (triggering `foo`), tap of 'a' triggering `a`
     Pesc 100 Ta Tb Resc:
       press of 'Esc', 100ms pause, tap of 'a', tap of 'b', release of 'Esc'
